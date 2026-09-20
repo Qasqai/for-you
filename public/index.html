@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>너만을 위한 특별한 Q&A 💖</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --primary: #ff4b72;
+      --primary-hover: #e0385e;
+      --text-main: #2d3436;
+      --text-muted: #636e72;
+      --border-color: #f1f2f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      width: 100%;
+      max-width: 440px;
+      padding: 36px 28px;
+      border-radius: 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen {
+      display: none;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .header .icon {
+      font-size: 2.8rem;
+      margin-bottom: 12px;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: #ffe1e6;
+      border-radius: 10px;
+      margin-right: 12px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 20%;
+      transition: width 0.3s ease;
+    }
+
+    .q-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border-color);
+    }
+
+    .q-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-label {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #f8f9fa;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-main);
+      transition: all 0.2s ease;
+    }
+
+    .option-label:hover {
+      background: #fff0f3;
+      border-color: #ffb8c6;
+    }
+
+    .option-label input[type="radio"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #cbd5e1;
+      border-radius: 50%;
+      margin-right: 12px;
+      outline: none;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .option-label input[type="radio"]:checked {
+      border-color: var(--primary);
+      background-color: var(--primary);
+    }
+
+    .option-label input[type="radio"]:checked::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
+      border-radius: 50%;
+    }
+
+    .option-label:has(input:checked) {
+      background: #fff0f3;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .custom-input {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid #ffb8c6;
+      background: #ffffff;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      outline: none;
+      display: none;
+    }
+
+    .custom-input:focus {
+      border-color: var(--primary);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 16px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(255, 75, 114, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(255, 75, 114, 0.45);
+    }
+
+    button:disabled {
+      background: #cbd5e1;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .btn-prev {
+      background: #f1f2f6;
+      color: var(--text-muted);
+      box-shadow: none;
+    }
+
+    .btn-prev:hover {
+      background: #e4e7eb;
+      color: var(--text-main);
+    }
+
+    .success-msg {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .success-msg .icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+    }
+
+    .success-msg h2 {
+      font-size: 1.4rem;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .success-msg p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- 시작 화면 -->
+    <div class="screen active" id="screen-0">
+      <div class="header" style="margin-top: 10px; margin-bottom: 30px;">
+        <div class="icon">💌</div>
+        <h1>너만을 위한 특별한 Q&A</h1>
+        <p class="subtitle">나에 대해, 그리고 우리 취향에 대해<br>솔직하게 답해줘! 💕</p>
+      </div>
+      <button type="button" id="startBtn">시작하기 ✨</button>
+    </div>
+
+    <!-- 질문 화면 (1~5번) -->
+    <div class="screen" id="screen-questions">
+      <div class="progress-bar">
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span id="progressText">1 / 5</span>
+      </div>
+
+      <form id="qaForm">
+        <!-- 질문 1 -->
+        <div class="q-card q-step" data-step="1">
+          <div class="q-title">1. 어떤 음식을 좋아해? 🍕</div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q1" value="한식"> 한식 🍲</label>
+            <label class="option-label"><input type="radio" name="q1" value="양식"> 양식 🍝</label>
+            <label class="option-label"><input type="radio" name="q1" value="일식"> 일식 🍣</label>
+            <label class="option-label"><input type="radio" name="q1" value="달콤한 디저트 & 빵"> 달콤한 디저트 & 빵 🍰</label>
+            <label class="option-label"><input type="radio" name="q1" value="custom"> 직접 입력하기... ✏️</label>
+            <input type="text" class="custom-input" placeholder="어떤 음식 좋아하는지 적어줘..." />
+          </div>
+        </div>
+
+        <!-- 질문 2 -->
+        <div class="q-card q-step" data-step="2" style="display: none;">
+          <div class="q-title">2. 어떤 분위기가 좋아? ✨</div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q2" value="조용하고 감성적인 분위기"> 조용하고 감성적인 분위기 ☕</label>
+            <label class="option-label"><input type="radio" name="q2" value="활기차고 즐거운 분위기"> 활기차고 즐거운 분위기 🎉</label>
+            <label class="option-label"><input type="radio" name="q2" value="자연 속의 편안한 분위기"> 자연 속 편안한 분위기 🌿</label>
+            <label class="option-label"><input type="radio" name="q2" value="아늑하고 따뜻한 집 분위기"> 아늑하고 따뜻한 집 분위기 🏠</label>
+            <label class="option-label"><input type="radio" name="q2" value="custom"> 직접 입력하기... ✏️</label>
+            <input type="text" class="custom-input" placeholder="좋아하는 분위기 적어줘..." />
+          </div>
+        </div>
+
+        <!-- 질문 3 -->
+        <div class="q-card q-step" data-step="3" style="display: none;">
+          <div class="q-title">3. 이상형이 어떻게 돼? 💖</div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q3" value="다정하고 잘 챙겨주는 사람"> 다정하고 잘 챙겨주는 사람 🥰</label>
+            <label class="option-label"><input type="radio" name="q3" value="유머 감각 있고 재미있는 사람"> 유머 있고 재미있는 사람 😄</label>
+            <label class="option-label"><input type="radio" name="q3" value="솔직하고 표현 잘하는 사람"> 솔직하고 표현 잘하는 사람 💌</label>
+            <label class="option-label"><input type="radio" name="q3" value="대화가 잘 통하는 사람"> 대화 잘 통하는 사람 🗣️</label>
+            <label class="option-label"><input type="radio" name="q3" value="custom"> 직접 입력하기... ✏️</label>
+            <input type="text" class="custom-input" placeholder="네 이상형을 적어줘..." />
+          </div>
+        </div>
+
+        <!-- 질문 4 -->
+        <div class="q-card q-step" data-step="4" style="display: none;">
+          <div class="q-title">4. 취미가 뭐야? 🎨</div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q4" value="영화 / 드라마 보기"> 영화 / 드라마 보기 🎬</label>
+            <label class="option-label"><input type="radio" name="q4" value="음악 듣기 / 산책하기"> 음악 듣기 / 산책하기 🎧</label>
+            <label class="option-label"><input type="radio" name="q4" value="맛집 탐방 / 카페 가기"> 맛집 탐방 / 카페 가기 ☕</label>
+            <label class="option-label"><input type="radio" name="q4" value="운동 / 야외 활동"> 운동 / 야외 활동 🏃‍♀️</label>
+            <label class="option-label"><input type="radio" name="q4" value="custom"> 직접 입력하기... ✏️</label>
+            <input type="text" class="custom-input" placeholder="네 취미를 적어줘..." />
+          </div>
+        </div>
+
+        <!-- 질문 5 -->
+        <div class="q-card q-step" data-step="5" style="display: none;">
+          <div class="q-title">5. 어떤 꽃을 좋아해? 🌸</div>
+          <div class="options">
+            <label class="option-label"><input type="radio" name="q5" value="장미"> 장미 🌹</label>
+            <label class="option-label"><input type="radio" name="q5" value="튤립"> 튤립 🌷</label>
+            <label class="option-label"><input type="radio" name="q5" value="해바라기"> 해바라기 🌻</label>
+            <label class="option-label"><input type="radio" name="q5" value="안개꽃 / 잔잔한 꽃"> 안개꽃 / 잔잔한 꽃 💐</label>
+            <label class="option-label"><input type="radio" name="q5" value="custom"> 직접 입력하기... ✏️</label>
+            <input type="text" class="custom-input" placeholder="좋아하는 꽃 적어줘..." />
+          </div>
+        </div>
+
+        <div class="nav-buttons">
+          <button type="button" class="btn-prev" id="prevBtn" style="display: none;">이전</button>
+          <button type="button" id="nextBtn" disabled>다음</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 완료 화면 -->
+    <div class="screen success-msg" id="screen-success">
+      <div class="icon">💖</div>
+      <h2>답변이 잘 전달됐어!</h2>
+      <p>솔직하게 답해줘서 고마워 🥰<br>우리 곧 만나!</p>
+    </div>
+
+  </div>
+
+  <script>
+    const socket = io();
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    const startBtn = document.getElementById('startBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    startBtn.addEventListener('click', () => {
+      document.getElementById('screen-0').classList.remove('active');
+      document.getElementById('screen-questions').classList.add('active');
+      updateStepView();
+    });
+
+    document.querySelectorAll('.q-step').forEach(card => {
+      const radios = card.querySelectorAll('input[type="radio"]');
+      const customInput = card.querySelector('.custom-input');
+
+      radios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          if (radio.value === 'custom') {
+            customInput.style.display = 'block';
+            customInput.focus();
+            validateCurrentStep();
+          } else {
+            customInput.style.display = 'none';
+            nextBtn.disabled = false;
+          }
+        });
+      });
+
+      if (customInput) {
+        customInput.addEventListener('input', () => {
+          validateCurrentStep();
+        });
+      }
+    });
+
+    function validateCurrentStep() {
+      const currentCard = document.querySelector(`.q-step[data-step="${currentStep}"]`);
+      const selectedRadio = currentCard.querySelector('input[type="radio"]:checked');
+
+      if (!selectedRadio) {
+        nextBtn.disabled = true;
+        return;
+      }
+
+      if (selectedRadio.value === 'custom') {
+        const customInput = currentCard.querySelector('.custom-input');
+        nextBtn.disabled = customInput.value.trim() === '';
+      } else {
+        nextBtn.disabled = false;
+      }
+    }
+
+    function updateStepView() {
+      document.querySelectorAll('.q-step').forEach(card => {
+        card.style.display = parseInt(card.dataset.step) === currentStep ? 'block' : 'none';
+      });
+
+      prevBtn.style.display = currentStep > 1 ? 'block' : 'none';
+
+      if (currentStep === totalSteps) {
+        nextBtn.textContent = '답변 보낼게! ✨';
+      } else {
+        nextBtn.textContent = '다음';
+      }
+
+      progressFill.style.width = `${(currentStep / totalSteps) * 100}%`;
+      progressText.textContent = `${currentStep} / ${totalSteps}`;
+
+      validateCurrentStep();
+    }
+
+    prevBtn.addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;
+        updateStepView();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        updateStepView();
+      } else {
+        submitAnswers();
+      }
+    });
+
+    function submitAnswers() {
+      const questionsList = [
+        "1. 어떤 음식을 좋아해?",
+        "2. 어떤 분위기가 좋아?",
+        "3. 이상형이 어떻게 돼?",
+        "4. 취미가 뭐야?",
+        "5. 어떤 꽃을 좋아해?"
+      ];
+
+      const answers = [];
+
+      for (let i = 1; i <= totalSteps; i++) {
+        const card = document.querySelector(`.q-step[data-step="${i}"]`);
+        const selectedRadio = card.querySelector(`input[name="q${i}"]:checked`);
+        let answerText = "";
+
+        if (selectedRadio) {
+          if (selectedRadio.value === 'custom') {
+            answerText = card.querySelector('.custom-input').value.trim();
+          } else {
+            answerText = selectedRadio.value;
+          }
+        }
+
+        answers.push({
+          question: questionsList[i - 1],
+          answer: answerText
+        });
+      }
+
+      socket.emit('submit_answers', { answers });
+
+      document.getElementById('screen-questions').classList.remove('active');
+      document.getElementById('screen-success').classList.add('active');
+    }
+  </script>
+</body>
+</html>
